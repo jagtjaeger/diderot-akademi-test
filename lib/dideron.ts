@@ -1,6 +1,5 @@
 /**
- * Dideron – demo-svar med DILM-struktur (Konkret → Representationell → Abstrakt → Reflektion)
- * Fungerar utan API-nyckel så testappen alltid går att visa.
+ * Dideron – anropar /api/chat (Groq) om möjligt, annars lokala DILM-demo-svar.
  */
 
 export type DILMResponse = {
@@ -11,80 +10,116 @@ export type DILMResponse = {
   curiosityAwarded: number;
 };
 
-const DEMO_RESPONSES: Record<string, DILMResponse> = {
+const DEMO: Record<string, DILMResponse> = {
   default: {
     concrete:
-      "Tänk dig att du står på en fotbollsplan. Du ska lägga en straff. Avståndet från straffpunkten till mållinjen är 11 meter. Du behöver veta hur långt bollen ska färdas – det är konkret matematik du redan använder utan att tänka på det.",
+      "Tänk dig att du står på en fotbollsplan. Du ska lägga en straff. Avståndet från straffpunkten till mållinjen är 11 meter – konkret matematik du redan använder.",
     representational:
-      "Vi kan rita det som en rät linje från punkt A (straffpunkten) till punkt B (målet). Avståndet kallar vi d = 11 m. Om målvakten tar ett steg åt sidan blir det en rätvinklig triangel – då dyker Pythagoras upp: a² + b² = c².",
+      "Rita en linje från A (straffpunkt) till B (mål). Om målvakten tar ett steg åt sidan får du en rätvinklig triangel: a² + b² = c².",
     abstract:
-      "Generellt: i ett rätvinkligt koordinatsystem är det kortaste avståndet mellan två punkter hypotenusan. Formeln a² + b² = c² är en first principle – den gäller på planen, i en ritning och på Mars.",
+      "I ett rätvinkligt system är det kortaste avståndet hypotenusan. a² + b² = c² är en first principle – giltig på planen och på Mars.",
     reflection:
-      "När har du senast använt avstånd eller vinklar utan att kalla det matte? Hur skulle du förklara Pythagoras för en kompis som bara bryr sig om fotboll?",
+      "När använde du avstånd eller vinklar utan att kalla det matte? Hur förklarar du Pythagoras för en kompis som bara bryr sig om fotboll?",
     curiosityAwarded: 35,
   },
   procent: {
     concrete:
-      "Ett lag har gjort 12 mål på 20 skott. Hur stor andel av skotten blev mål? Du jämför det som gick in med det totala – det är procent i vardagen.",
+      "Ett lag har 12 mål på 20 skott. Hur stor andel blev mål? Du jämför det som gick in med det totala – procent i vardagen.",
     representational:
-      "Vi skriver det som ett bråk: 12/20. För att få procent multiplicerar vi med 100: (12/20) × 100 = 60 %. Bilden är en cirkel eller ett stapeldiagram där 60 % är ifyllt.",
+      "Bråket 12/20 × 100 = 60 %. Rita en cirkel eller stapel där 60 % är ifyllt.",
     abstract:
-      "Procent betyder 'per hundra'. Allmänt: andel = (del / helhet) × 100. Samma struktur används i statistik, ekonomi och sannolikhet.",
+      "Procent = per hundra. Allmänt: andel = (del / helhet) × 100. Samma struktur i statistik, ekonomi och sannolikhet.",
     reflection:
-      "Hitta tre saker i din vecka där du redan tänker i procent (rea, batteri, matchstatistik). Vad blir lättare när du ser mönstret?",
+      "Hitta tre saker i din vecka där du redan tänker i procent (rea, batteri, matchstatistik).",
     curiosityAwarded: 40,
   },
   evolution: {
     concrete:
-      "Föreställ dig en flock fåglar på en ö. Vissa har lite längre näbb och når frön som andra inte når. De äter bättre, överlever oftare och får fler ungar – näbben 'vinner' utan att någon planerat det.",
+      "En flock fåglar på en ö: några har längre näbb och når mer mat. De överlever oftare och får fler ungar – utan att någon planerat det.",
     representational:
-      "Vi kan rita det som ett träd: generation 1 → variation → selektion → generation 2 med fler långnäbbade. Det är en modell av naturligt urval.",
+      "Rita ett träd: generation 1 → variation → selektion → generation 2 med fler långnäbbade.",
     abstract:
-      "Evolution vilar på tre first principles: variation, ärftlighet och selektion. Tillsammans ger de anpassning över tid – utan målmedveten design.",
+      "Evolution vilar på variation, ärftlighet och selektion. Tillsammans ger de anpassning över tid.",
     reflection:
-      "Var ser du 'selektion' i din egen värld – i sport, musik eller teknik? Vad skulle hända om variation försvann?",
+      "Var ser du selektion i sport, musik eller teknik? Vad händer om variation försvinner?",
     curiosityAwarded: 38,
+  },
+  energi: {
+    concrete:
+      "När du cyklar uppför känns det tungt. Uppe på toppen har du 'sparat' energi. Nedför går det av sig självt – energin byter form.",
+    representational:
+      "Lägesenergi högt uppe blir rörelseenergi nedför. Rita en backe med pilar: mgh → ½mv².",
+    abstract:
+      "Energi kan inte skapas eller förstöras, bara omvandlas. Det är energiprincipen.",
+    reflection:
+      "Var tar energin vägen när du bromsar? Hur märker du energiprincipen i din vardag?",
+    curiosityAwarded: 36,
   },
 };
 
-function pickResponse(message: string): DILMResponse {
+function pickDemo(message: string): DILMResponse {
   const m = message.toLowerCase();
-  if (m.includes("procent") || m.includes("percent") || m.includes("andel")) {
-    return DEMO_RESPONSES.procent;
-  }
-  if (m.includes("evolution") || m.includes("darwin") || m.includes("urval")) {
-    return DEMO_RESPONSES.evolution;
-  }
-  if (
-    m.includes("pythagoras") ||
-    m.includes("straff") ||
-    m.includes("fotboll") ||
-    m.includes("triangel")
-  ) {
-    return DEMO_RESPONSES.default;
-  }
-  return DEMO_RESPONSES.default;
+  if (m.includes("procent") || m.includes("andel") || m.includes("skott")) return DEMO.procent;
+  if (m.includes("evolution") || m.includes("näbb") || m.includes("urval")) return DEMO.evolution;
+  if (m.includes("energi") || m.includes("cykel") || m.includes("backe")) return DEMO.energi;
+  return DEMO.default;
 }
 
-export function formatDILMMessage(r: DILMResponse): string {
+function formatDemo(r: DILMResponse, subject: string): string {
   return [
-    `🟢 KONKRET\n${r.concrete}`,
-    `\n🔵 REPRESENTATIONELL\n${r.representational}`,
-    `\n🟣 ABSTRAKT\n${r.abstract}`,
-    `\n🟡 REFLEKTION\n${r.reflection}`,
-    `\n✨ +${r.curiosityAwarded} Curiosity`,
+    `📜 Dideron · ${subject} · demo`,
+    ``,
+    `🟢 KONKRET`,
+    r.concrete,
+    ``,
+    `🔵 REPRESENTATIONELL`,
+    r.representational,
+    ``,
+    `🟣 ABSTRAKT`,
+    r.abstract,
+    ``,
+    `🟡 REFLEKTION`,
+    r.reflection,
+    ``,
+    `✨ +${r.curiosityAwarded} Curiosity`,
   ].join("\n");
 }
 
 export async function askDideron(
   message: string,
-  subjectLabel: string
-): Promise<{ text: string; points: number }> {
-  await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
-  const response = pickResponse(message);
-  const intro = `📜 Dideron · ${subjectLabel}\n\n`;
+  subjectLabel: string,
+  history: { role: string; content: string }[] = []
+): Promise<{ text: string; points: number; source: string }> {
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        subject: subjectLabel,
+        history,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.text) {
+        return {
+          text: data.text.startsWith("📜") ? data.text : `📜 Dideron · ${subjectLabel}\n\n${data.text}`,
+          points: data.points || 30,
+          source: data.source || "groq",
+        };
+      }
+    }
+  } catch {
+    // fall through to demo
+  }
+
+  await new Promise((r) => setTimeout(r, 600 + Math.random() * 400));
+  const demo = pickDemo(message);
   return {
-    text: intro + formatDILMMessage(response),
-    points: response.curiosityAwarded,
+    text: formatDemo(demo, subjectLabel),
+    points: demo.curiosityAwarded,
+    source: "demo",
   };
 }

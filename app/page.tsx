@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SUBJECTS, getSubject } from "@/lib/subjects";
 import { askDideron } from "@/lib/dideron";
+import { lessonsForSubject } from "@/lib/lessons";
 
 type Msg = { role: "user" | "ai"; text: string };
 
@@ -33,9 +34,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [curiosity, setCuriosity] = useState(0);
   const [started, setStarted] = useState(false);
+  const [source, setSource] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const subject = getSubject(subjectId);
   const level = getLevel(curiosity);
+  const lessons = lessonsForSubject(subjectId);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -50,19 +53,28 @@ export default function Home() {
       setMessages((m) => [...m, { role: "user", text: trimmed }]);
       setLoading(true);
       try {
-        const { text: reply, points } = await askDideron(trimmed, subject.label);
+        const history = messages.map((m) => ({
+          role: m.role === "user" ? "user" : "assistant",
+          content: m.text,
+        }));
+        const { text: reply, points, source: src } = await askDideron(
+          trimmed,
+          subject.label,
+          history
+        );
+        setSource(src);
         setMessages((m) => [...m, { role: "ai", text: reply }]);
         setCuriosity((c) => c + points);
       } catch {
         setMessages((m) => [
           ...m,
-          { role: "ai", text: "Dideron kunde inte svara just nu. Försök igen om en stund." },
+          { role: "ai", text: "Dideron kunde inte svara just nu. Försök igen." },
         ]);
       } finally {
         setLoading(false);
       }
     },
-    [loading, subject.label]
+    [loading, subject.label, messages]
   );
 
   const welcome = () => {
@@ -75,8 +87,8 @@ export default function Home() {
           `Välkommen. Jag är Dideron – din guide i Diderot Akademi.\n\n` +
           `Vi lär oss med DILM:\n` +
           `🟢 Konkret → 🔵 Representationell → 🟣 Abstrakt → 🟡 Reflektion\n\n` +
-          `Allt utgår från ditt intresse. Välj en snabbfråga eller skriv fritt.\n` +
-          `Varje genomtänkt svar ger Curiosity-poäng.`,
+          `Välj en lektion eller snabbfråga, eller skriv fritt.\n` +
+          `Varje svar ger Curiosity-poäng.`,
       },
     ]);
   };
@@ -92,7 +104,7 @@ export default function Home() {
             </span>
           </div>
           <div className="muted" style={{ fontSize: "0.85rem" }}>
-            DILA · Testapp
+            DILA · {source === "groq" ? "Groq live" : "Testapp"}
           </div>
         </header>
 
@@ -103,14 +115,13 @@ export default function Home() {
                 <span className="badge gold-badge">DILA Architecture</span>
                 <span className="badge">3D-pedagogik</span>
                 <span className="badge">Curiosity Engine</span>
-                <span className="badge">Skolverket åk 7–9</span>
+                <span className="badge">19 lektioner</span>
               </div>
               <h1 className="font-serif">
                 Kunskap som <span className="gold">befriar</span>
               </h1>
               <p className="tagline">
-                Encyclopédie 2.0 – lär dig matematik, naturvetenskap och mer
-                utifrån det du redan bryr dig om. First principles för varje sinne.
+                Encyclopédie 2.0 – lär dig utifrån det du bryr dig om. First principles för varje sinne.
               </p>
               <button className="btn btn-gold" onClick={welcome}>
                 Starta med Dideron →
@@ -123,22 +134,18 @@ export default function Home() {
                 <div className="dilm-step">
                   <div className="num">01</div>
                   <div className="name">🟢 Konkret</div>
-                  <p className="muted" style={{ fontSize: "0.75rem", marginTop: 4 }}>Vardag & intresse</p>
                 </div>
                 <div className="dilm-step">
                   <div className="num">02</div>
                   <div className="name">🔵 Representation</div>
-                  <p className="muted" style={{ fontSize: "0.75rem", marginTop: 4 }}>Bild, modell, analogi</p>
                 </div>
                 <div className="dilm-step">
                   <div className="num">03</div>
                   <div className="name">🟣 Abstrakt</div>
-                  <p className="muted" style={{ fontSize: "0.75rem", marginTop: 4 }}>First principles</p>
                 </div>
                 <div className="dilm-step">
                   <div className="num">04</div>
                   <div className="name">🟡 Reflektion</div>
-                  <p className="muted" style={{ fontSize: "0.75rem", marginTop: 4 }}>Metakognition</p>
                 </div>
               </div>
             </section>
@@ -161,21 +168,29 @@ export default function Home() {
             </section>
 
             <section className="card" style={{ marginBottom: "2rem" }}>
-              <p className="section-title">Exempel – Matematik × fotboll</p>
-              <p style={{ marginBottom: "0.75rem" }}>
-                <strong className="gold">Uppgift:</strong> Ett lag har 12 mål på 20 skott. Hur många procent blev mål?
-              </p>
-              <p className="muted" style={{ fontSize: "0.9rem" }}>
-                Dideron svarar i fyra lager: konkret (matchen) → representation (bråk/diagram) →
-                abstrakt (andel = del/helhet × 100) → reflektion. Det är DILA i praktiken.
-              </p>
+              <p className="section-title">Lektioner i {subject.label}</p>
+              <div className="quick-prompts">
+                {lessons.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    className="quick-prompt"
+                    onClick={() => {
+                      welcome();
+                      setTimeout(() => send(l.prompt), 100);
+                    }}
+                  >
+                    {l.title} · {l.interest}
+                  </button>
+                ))}
+              </div>
             </section>
           </>
         ) : (
           <div className="grid-2" style={{ paddingTop: "1rem" }}>
             <aside>
               <div className="curiosity-bar-wrap" style={{ marginBottom: "1rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span className="section-title" style={{ margin: 0 }}>Curiosity Engine</span>
                   <span className="gold" style={{ fontWeight: 700 }}>{curiosity} XP</span>
                 </div>
@@ -185,7 +200,7 @@ export default function Home() {
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem" }}>
                   <span className="gold">{level.name}</span>
                   <span className="muted">
-                    {level.next ? `${level.next.min - curiosity} till ${level.next.name}` : "Maxnivå"}
+                    {level.next ? `${level.next.min - curiosity} till nästa` : "Maxnivå"}
                   </span>
                 </div>
               </div>
@@ -205,7 +220,22 @@ export default function Home() {
                 ))}
               </div>
 
-              <p className="section-title">Snabbfrågor · {subject.label}</p>
+              <p className="section-title">Lektioner</p>
+              <div className="quick-prompts" style={{ marginBottom: "1rem" }}>
+                {lessons.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    className="quick-prompt"
+                    onClick={() => send(l.prompt)}
+                    disabled={loading}
+                  >
+                    {l.title}
+                  </button>
+                ))}
+              </div>
+
+              <p className="section-title">Snabbfrågor</p>
               <div className="quick-prompts">
                 {subject.prompts.map((p) => (
                   <button key={p} type="button" className="quick-prompt" onClick={() => send(p)} disabled={loading}>
@@ -241,7 +271,6 @@ export default function Home() {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={`Fråga Dideron om ${subject.label}…`}
                   disabled={loading}
-                  aria-label="Meddelande"
                 />
                 <button type="submit" className="btn btn-gold" disabled={loading || !input.trim()}>
                   Skicka
@@ -258,7 +287,7 @@ export default function Home() {
         </p>
         <p>Interest Anchor · DILM · Curiosity Engine · First Principles</p>
         <p style={{ marginTop: 8, fontSize: "0.8rem" }}>
-          Testapp · Encyclopédie 2.0 · Kunskap som befriar
+          {source === "groq" ? "Driven av Groq · llama-3.3-70b" : "Demo-läge (lägg till GROQ_API_KEY för live-AI)"}
         </p>
       </footer>
     </div>
